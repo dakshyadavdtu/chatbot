@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Chatbot</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-robot me-2"></i>Smart Chatbot
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#analyticsModal">
+                                <i class="fas fa-chart-bar me-1"></i>Analytics
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#trainingModal">
+                                <i class="fas fa-database me-1"></i>Training Data
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">
+                                <i class="fas fa-user-plus me-1"></i>Register
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for message in messages %}
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Main Content -->
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Admin Modals (Only visible to admins) -->
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    <!-- Analytics Modal -->
+    <div class="modal fade" id="analyticsModal" tabindex="-1" aria-labelledby="analyticsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="analyticsModalLabel">Chatbot Analytics</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="analytics-card text-center">
+                                <h6>Total Users</h6>
+                                <div class="analytics-value" id="totalUsers">-</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="analytics-card text-center">
+                                <h6>Total Messages</h6>
+                                <div class="analytics-value" id="totalMessages">-</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="analytics-card text-center">
+                                <h6>Avg. Messages/Session</h6>
+                                <div class="analytics-value" id="avgMessages">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-card mt-4">
+                        <h6>Common User Queries</h6>
+                        <ul class="list-group" id="commonQueries">
+                            <li class="list-group-item">Loading data...</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Training Data Modal -->
+    <div class="modal fade" id="trainingModal" tabindex="-1" aria-labelledby="trainingModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="trainingModalLabel">Add Training Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="trainingForm">
+                        <div class="mb-3">
+                            <label for="question" class="form-label">Question</label>
+                            <input type="text" class="form-control" id="question" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="answer" class="form-label">Answer</label>
+                            <textarea class="form-control" id="answer" rows="3" required></textarea>
+                        </div>
+                        <div id="trainingStatus"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveTrainingData">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Load analytics data when modal is opened
+        document.getElementById('analyticsModal').addEventListener('show.bs.modal', function () {
+            fetch('/analytics')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('totalUsers').textContent = data.user_count;
+                    document.getElementById('totalMessages').textContent = data.message_count;
+                    document.getElementById('avgMessages').textContent = data.avg_messages;
+                    
+                    // Populate common queries
+                    const queriesList = document.getElementById('commonQueries');
+                    queriesList.innerHTML = '';
+                    
+                    if (data.common_queries && data.common_queries.length > 0) {
+                        data.common_queries.forEach(query => {
+                            const item = document.createElement('li');
+                            item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                            item.textContent = query[0];
+                            
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-primary rounded-pill';
+                            badge.textContent = query[1];
+                            
+                            item.appendChild(badge);
+                            queriesList.appendChild(item);
+                        });
+                    } else {
+                        const item = document.createElement('li');
+                        item.className = 'list-group-item';
+                        item.textContent = 'No data available';
+                        queriesList.appendChild(item);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching analytics:', error);
+                });
+        });
+        
+        // Handle training data submission
+        document.getElementById('saveTrainingData').addEventListener('click', function() {
+            const question = document.getElementById('question').value.trim();
+            const answer = document.getElementById('answer').value.trim();
+            const statusDiv = document.getElementById('trainingStatus');
+            
+            if (!question || !answer) {
+                statusDiv.innerHTML = '<div class="alert alert-danger">Please fill in all fields</div>';
+                return;
+            }
+            
+            fetch('/add_training_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question, answer }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.innerHTML = '<div class="alert alert-success">Training data added successfully!</div>';
+                    document.getElementById('question').value = '';
+                    document.getElementById('answer').value = '';
+                } else {
+                    statusDiv.innerHTML = `<div class="alert alert-danger">${data.error || 'An error occurred'}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                statusDiv.innerHTML = '<div class="alert alert-danger">An error occurred while saving the data</div>';
+            });
+        });
+    </script>
+    {% endif %}
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
